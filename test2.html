@@ -1,0 +1,33 @@
+<!-- test.html -->
+<script type="module">
+    // ... 省略 firebase 初始化 ...
+
+    // ❗️ 新的測試函式，用 fetch 來呼叫 onRequest 端點
+    async function testDebugCORS() {
+        console.log("Calling debugCORS function with fetch...");
+        try {
+            // ❗️❗️你需要去 Cloud Console 複製這個函式的觸發 URL ❗️❗️
+            const functionUrl = "https://us-central1-devjam-be-462203.cloudfunctions.net/debugCORS";
+
+            const response = await fetch(functionUrl, {
+                method: 'POST', // 即使沒有傳送資料，也用 POST 模擬 onCall
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ data: { message: "hello" } }) // 模擬 onCall 的資料結構
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log("✅ SUCCESS! debugCORS Response:", result);
+
+        } catch (error) {
+            console.error("❌ ERROR! debugCORS failed:", error);
+        }
+    }
+    window.testDebugCORS = testDebugCORS;
+</script>
+<button onclick="testDebugCORS()">Test Manual CORS</button>

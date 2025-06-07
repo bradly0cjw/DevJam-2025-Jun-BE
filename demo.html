@@ -1,0 +1,135 @@
+<head>
+    <title>衣循環AI - 終極測試頁面</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 900px; margin: auto; }
+        h1, h3 { text-align: center; }
+        .uploader-container { text-align: center; margin: 30px 0; }
+        #statusArea { text-align: center; font-style: italic; color: #555; height: 20px; margin-bottom: 20px; }
+        #main-results { display: flex; justify-content: center; align-items: flex-start; gap: 30px; }
+        .result-card { text-align: center; width: 300px; }
+        .result-card img { width: 100%; max-width: 280px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .hidden { display: none; }
+        #debug-area { margin-top: 30px; padding: 15px; background-color: #f0f0f0; border-radius: 8px; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <h1>【衣循環AI】</h1>
+    <h3>上傳一件你的衣服，看看 AI 如何為你搭配！</h3>
+
+    <div class="uploader-container">
+        <input type="file" id="imageUploader" accept="image/*" />
+    </div>
+
+    <div id="statusArea"></div>
+
+    <!-- 主要結果展示 -->
+    <div id="main-results" class="hidden">
+        <div class="result-card">
+            <h3>你上傳的</h3>
+            <img id="uploadedImage" src="" alt="User Uploaded Image" />
+        </div>
+        <div id="recommendationCard" class="result-card hidden">
+            <h3>AI 推薦搭配</h3>
+            <img id="recommendedImage" src="" alt="AI Recommendation" />
+            <h4 id="recommendedName"></h4>
+        </div>
+    </div>
+
+    <!-- 除錯區域，用來顯示 Vision AI 的原始標籤 -->
+    <div id="debug-area" class="hidden">
+        <h3>Vision AI 原始分析標籤 (Debug Info)</h3>
+        <pre id="visionResultArea"></pre>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-functions.js";
+        import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js";
+        const firebaseConfig = {
+            apiKey: "AIzaSyAnfJjy5zyOH_ZimmW3xGrUkYoQznjsAjY",
+            authDomain: "devjam-be-462203.firebaseapp.com",
+            projectId: "devjam-be-462203",
+            storageBucket: "devjam-be-462203.firebasestorage.app", 
+            messagingSenderId: "146471599016",
+            appId: "1:146471599016:web:1797ca68c749e1fe653b9d",
+            measurementId: "G-53ZFQ9FK9N"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const functions = getFunctions(app, 'us-central1');
+        const storage = getStorage(app);
+        
+        // 獲取所有 HTML 元素
+        const imageUploader = document.getElementById('imageUploader');
+        const statusArea = document.getElementById('statusArea');
+        const mainResultsDiv = document.getElementById('main-results');
+        const uploadedImage = document.getElementById('uploadedImage');
+        const recommendationCard = document.getElementById('recommendationCard');
+        const recommendedImage = document.getElementById('recommendedImage');
+        const recommendedName = document.getElementById('recommendedName');
+        const debugArea = document.getElementById('debug-area');
+        const visionResultArea = document.getElementById('visionResultArea');
+
+        // 監聽檔案選擇事件
+        imageUploader.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // 清理介面
+            statusArea.textContent = '準備中...';
+            mainResultsDiv.classList.add('hidden');
+            recommendationCard.classList.add('hidden');
+            debugArea.classList.add('hidden');
+
+            try {
+                // --- 步驟 1: 上傳圖片到 Firebase Storage ---
+                statusArea.textContent = '圖片上傳中...';
+                const filePath = `user-uploads/${Date.now()}-${file.name}`;
+                const storageRef = ref(storage, filePath);
+                await uploadBytes(storageRef, file);
+                console.log('Image uploaded successfully to:', filePath);
+                
+                // 顯示上傳的圖片
+                uploadedImage.src = URL.createObjectURL(file);
+                mainResultsDiv.classList.remove('hidden');
+
+                // --- 步驟 2: 並行呼叫兩個後端 API ---
+                statusArea.textContent = 'AI 正在分析與搭配...';
+                
+                // 準備呼叫
+                const getOutfit = httpsCallable(functions, 'getOutfitRecommendation');
+                const getLabels = httpsCallable(functions, 'getVisionLabels');
+
+                // 使用 Promise.all 來同時發送兩個請求
+                const [outfitResult, labelResult] = await Promise.all([
+                    getOutfit({ filePath: filePath }),
+                    getLabels({ filePath: filePath })
+                ]);
+                
+                // --- 步驟 3: 展示所有結果 ---
+                statusArea.textContent = '分析與搭配完成！';
+
+                // 展示推薦搭配的結果
+                const recommendation = outfitResult.data.recommendation;
+                if (recommendation) {
+                    recommendedImage.src = recommendation.imageUrl;
+                    recommendedImage.alt = recommendation.name;
+                    recommendedName.textContent = recommendation.name;
+                    recommendationCard.classList.remove('hidden');
+                }
+
+                // 展示 Vision AI 原始標籤的結果
+                const labels = labelResult.data.labels;
+                if (labels) {
+                    visionResultArea.textContent = JSON.stringify(labels, null, 2);
+                    debugArea.classList.remove('hidden');
+                }
+
+            } catch (error) {
+                console.error("An error occurred:", error);
+                statusArea.textContent = `發生錯誤: ${error.message}`;
+            }
+        });
+    </script>
+</body>

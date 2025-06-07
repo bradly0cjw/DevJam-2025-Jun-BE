@@ -1,0 +1,115 @@
+<head>
+    <title>衣循環AI - Demo</title>
+</head>
+
+<body>
+    <h1>衣循環AI - 智慧搭配顧問</h1>
+
+    <!-- 1. 圖片選擇輸入框 -->
+    <input type="file" id="imageUploader" accept="image/*">
+    <hr>
+
+    <!-- 2. 狀態顯示區域 -->
+    <div id="statusArea"></div>
+    <hr>
+
+    <!-- 3. 結果展示區域 -->
+    <div style="display: flex; gap: 20px;">
+        <div>
+            <h3>你上傳的：</h3>
+            <img id="uploadedImage" src="" alt="User Uploaded Image" style="width: 200px; display: none;" />
+        </div>
+        <div>
+            <h3>AI 推薦搭配：</h3>
+            <div id="recommendationArea"></div>
+        </div>
+    </div>
+
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        // 1. 引入所有需要的 SDK
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-functions.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js";
+
+        // 2. 你的 Firebase 設定
+        const firebaseConfig = {
+        apiKey: "AIzaSyAnfJjy5zyOH_ZimmW3xGrUkYoQznjsAjY",
+        authDomain: "devjam-be-462203.firebaseapp.com",
+        projectId: "devjam-be-462203",
+        storageBucket: "devjam-be-462203.firebasestorage.app",
+        messagingSenderId: "146471599016",
+        appId: "1:146471599016:web:1797ca68c749e1fe653b9d",
+        measurementId: "G-53ZFQ9FK9N"
+        };
+
+        // 3. 初始化所有服務
+        const app = initializeApp(firebaseConfig);
+        const functions = getFunctions(app, 'us-central1');
+        const storage = getStorage(app);
+
+        // 獲取 HTML 元素
+        const imageUploader = document.getElementById('imageUploader');
+        const statusArea = document.getElementById('statusArea');
+        const uploadedImage = document.getElementById('uploadedImage');
+        const recommendationArea = document.getElementById('recommendationArea');
+
+        // 4. 監聽檔案選擇事件
+        imageUploader.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // 清空舊的結果
+            statusArea.textContent = '準備上傳...';
+            uploadedImage.style.display = 'none';
+            recommendationArea.innerHTML = '';
+
+            try {
+                // --- 步驟 1: 上傳圖片到 Firebase Storage ---
+                statusArea.textContent = '圖片上傳中...';
+
+                // 建立一個獨一無二的檔案名稱，避免覆蓋
+                const filePath = `user-uploads/${Date.now()}-${file.name}`;
+                const storageRef = ref(storage, filePath);
+
+                // 執行上傳
+                await uploadBytes(storageRef, file);
+                console.log('Image uploaded successfully!');
+
+                // 在畫面上預覽上傳的圖片
+                const localImageUrl = URL.createObjectURL(file);
+                uploadedImage.src = localImageUrl;
+                uploadedImage.style.display = 'block';
+
+
+                // --- 步驟 2: 呼叫後端 Cloud Function ---
+                statusArea.textContent = 'AI 正在為您搭配...';
+
+                // 我們使用舊的、穩定的 getOutfitRecommendation 函式
+                const getOutfit = httpsCallable(functions, 'getOutfitRecommendation');
+                const result = await getOutfit({ filePath: filePath });
+
+                // --- 步驟 3: 在前端展示結果 ---
+                statusArea.textContent = '搭配完成！';
+
+                const recommendation = result.data.recommendation;
+                if (recommendation) {
+                    recommendationArea.innerHTML = `
+                        <div>
+                            <img src="${recommendation.imageUrl}" alt="${recommendation.name}" style="width: 200px;" />
+                            <h4>${recommendation.name}</h4>
+                            <p>${recommendation.description || ''}</p>
+                        </div>
+                    `;
+                } else {
+                    recommendationArea.textContent = '找不到適合的推薦。';
+                }
+
+            } catch (error) {
+                console.error("An error occurred:", error);
+                statusArea.textContent = `發生錯誤: ${error.message}`;
+            }
+        });
+    </script>
+</body>

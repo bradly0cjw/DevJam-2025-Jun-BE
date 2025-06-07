@@ -7,13 +7,14 @@
 
     // 1. 你的 Firebase 設定
     const firebaseConfig = {
-        apiKey: "AIza...", // 換成你的
-        authDomain: "devjam-be-462203.firebaseapp.com", // 換成你的
-        projectId: "devjam-be-462203", // 換成你的
-        storageBucket: "devjam-be-462203.appspot.com", // 換成你的
-        messagingSenderId: "...", // 換成你的
-        appId: "..." // 換成你的
-    };
+        apiKey: "AIzaSyAnfJjy5zyOH_ZimmW3xGrUkYoQznjsAjY",
+        authDomain: "devjam-be-462203.firebaseapp.com",
+        projectId: "devjam-be-462203",
+        storageBucket: "devjam-be-462203.firebasestorage.app",
+        messagingSenderId: "146471599016",
+        appId: "1:146471599016:web:1797ca68c749e1fe653b9d",
+        measurementId: "G-53ZFQ9FK9N"
+        };
 
     // 2. 初始化 Firebase App
     const app = initializeApp(firebaseConfig);
@@ -36,12 +37,12 @@
     }
 
     window.testGetOutfit = async function() {
-        console.log("Calling the getOutfitRecommendation function...");
+        console.log("Calling the getSmartRecommendation function...");
         try {
             // 準備呼叫函式
-            const getOutfit = httpsCallable(functions, 'getOutfitRecommendation');
+            const getOutfit = httpsCallable(functions, 'getSmartRecommendation');
             // 準備要傳送的資料
-            const dataToSend = { filePath: "test-images/blue-jeans.jpg" }; // 確認這個路徑的圖片存在
+            const dataToSend = { filePath: "test-images/test.jpg" }; // 確認這個路徑的圖片存在
             console.log("Sending data:", dataToSend);
             // 執行呼叫
             const result = await getOutfit(dataToSend);
