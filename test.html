@@ -1,0 +1,59 @@
+<!-- ❗️❗️ 請用下面的程式碼完整替換你 test.html 裡的 <script> 區塊 ❗️❗️ -->
+
+<script type="module">
+    // 使用新的模組化語法 (type="module")
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+    import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-functions.js";
+
+    // 1. 你的 Firebase 設定
+    const firebaseConfig = {
+        apiKey: "AIza...", // 換成你的
+        authDomain: "devjam-be-462203.firebaseapp.com", // 換成你的
+        projectId: "devjam-be-462203", // 換成你的
+        storageBucket: "devjam-be-462203.appspot.com", // 換成你的
+        messagingSenderId: "...", // 換成你的
+        appId: "..." // 換成你的
+    };
+
+    // 2. 初始化 Firebase App
+    const app = initializeApp(firebaseConfig);
+
+    // 3. 初始化 Cloud Functions，並在這裡指定你的區域！
+    const functions = getFunctions(app, 'us-central1'); // <--- 正確指定區域的方式
+
+    // 4. 將你的測試函式掛載到全域，這樣 HTML 按鈕才能呼叫到它們
+    window.testDummyOnCall = async function() {
+        console.log("Calling dummyOnCall function...");
+        try {
+            // 準備呼叫函式
+            const dummyFunction = httpsCallable(functions, 'dummyOnCall');
+            // 執行呼叫
+            const result = await dummyFunction({ message: "Hello, are you there?", testValue: 123 });
+            console.log("✅ SUCCESS! Dummy onCall Response:", result.data);
+        } catch (error) {
+            console.error("❌ ERROR! Dummy onCall failed:", error);
+        }
+    }
+
+    window.testGetOutfit = async function() {
+        console.log("Calling the getOutfitRecommendation function...");
+        try {
+            // 準備呼叫函式
+            const getOutfit = httpsCallable(functions, 'getOutfitRecommendation');
+            // 準備要傳送的資料
+            const dataToSend = { filePath: "test-images/blue-jeans.jpg" }; // 確認這個路徑的圖片存在
+            console.log("Sending data:", dataToSend);
+            // 執行呼叫
+            const result = await getOutfit(dataToSend);
+            console.log("✅ SUCCESS! getOutfit Response:", result.data);
+        } catch (error) {
+            console.error("❌ ERROR! getOutfit failed:", error);
+        }
+    }
+</script>
+
+<!-- 你的 HTML 按鈕部分不用變 -->
+<button onclick="testGetOutfit()">Test getOutfitRecommendation</button>
+<hr>
+<h3>Ultimate Debug Test</h3>
+<button onclick="testDummyOnCall()">Test Dummy onCall Function</button>
